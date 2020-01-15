@@ -9,8 +9,18 @@ const {
 } = require("../users/userDb");
 const router = express.Router();
 
-router.post("/", (req, res) => {
+router.post("/", validateUser, (req, res) => {
   // do your magic!
+  insert(req.body)
+    .then(newUser => {
+      res.status(201).json(newUsers);
+    })
+    .catch(error => {
+      console.log(error);
+      res.status(500).json({
+        error: "There was an error adding the user to the database"
+      });
+    });
 });
 
 router.post("/:id/posts", (req, res) => {
@@ -30,7 +40,7 @@ router.get("/", (req, res) => {
     });
 });
 
-router.get("/:id", (req, res) => {
+router.get("/:id", validateUserId, (req, res) => {
   // do your magic!sql
   getById(req.params.id)
     .then(users => {
@@ -62,7 +72,7 @@ router.get("/:id/posts", (req, res) => {
     });
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", validateUserId, (req, res) => {
   // do your magic!
   remove(req.params.id)
     .then(count => {
@@ -82,16 +92,71 @@ router.delete("/:id", (req, res) => {
 
 router.put("/:id", (req, res) => {
   // do your magic!
+  const { id } = req.params;
+  const post = req.body;
+
+  if (!post.text || !post.user_id) {
+    res.status(400).json({
+      errorMessage: "Please provide text and user_id for the post."
+    });
+  } else {
+    update(id, post)
+      .then(updated => {
+        if (updated) {
+          res.status(200).json({
+            message: "Post updates",
+            updated
+          });
+        } else {
+          res.status(404).json({
+            message: "The post with the specified ID does not exist"
+          });
+        }
+      })
+      .catch(() => {
+        res
+          .status(500)
+          .json({ error: "The post information could not be modified." });
+      });
+  }
 });
 
 //custom middleware
 
 function validateUserId(req, res, next) {
   // do your magic!
+  const id = req.params.id;
+
+  getById(id)
+    .then(user => {
+      if (user) {
+        req.user = user;
+        next();
+      } else {
+        res.status(404).json({ message: "User Not Found." });
+      }
+    })
+    .catch(err => {
+      res.status(500).json(err);
+    });
 }
 
 function validateUser(req, res, next) {
   // do your magic!
+  const users = req.body;
+
+  Users.get(user)
+    .then(user => {
+      if (user) {
+        req.user = user;
+        next();
+      } else {
+        res.status(404).json({ message: "User Not Found." });
+      }
+    })
+    .catch(err => {
+      res.status(500).json(err);
+    });
 }
 
 function validatePost(req, res, next) {
