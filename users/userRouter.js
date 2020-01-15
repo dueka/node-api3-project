@@ -10,21 +10,43 @@ const {
 const router = express.Router();
 
 router.post("/", validateUser, (req, res) => {
-  // do your magic!
   insert(req.body)
     .then(newUser => {
-      res.status(201).json(newUsers);
+      res.status(201).json(newUser);
     })
     .catch(error => {
-      console.log(error);
       res.status(500).json({
-        error: "There was an error adding the user to the database"
+        message: "There is an error creating the new user"
       });
     });
 });
 
-router.post("/:id/posts", (req, res) => {
+router.post("/:id/posts", validateUserId, (req, res) => {
   // do your magic!
+  const { id } = req.params;
+  const { post } = req.body;
+
+  getById(id)
+    .then(user => {
+      if (!user) {
+        res
+          .status(404)
+          .json({ message: "The user with the specified ID does not exist." });
+      } else if (!post) {
+        res
+          .status(400)
+          .json({ errorMessage: "Please provide the text for the post." });
+      } else {
+        insertText({ post, user_id: id }).then(comment => {
+          res.status(201).json(post);
+        });
+      }
+    })
+    .catch(() => {
+      res.status(500).json({
+        error: "There was an error while saving the post to the database"
+      });
+    });
 });
 
 router.get("/", (req, res) => {
@@ -58,7 +80,7 @@ router.get("/:id", validateUserId, (req, res) => {
     });
 });
 
-router.get("/:id/posts", (req, res) => {
+router.get("/:id/posts", validateUserId, (req, res) => {
   // do your magic!
   getUserPosts(req.params.id)
     .then(posts => {
@@ -90,33 +112,33 @@ router.delete("/:id", validateUserId, (req, res) => {
     });
 });
 
-router.put("/:id", (req, res) => {
+router.put("/:id", validateUserId, (req, res) => {
   // do your magic!
   const { id } = req.params;
-  const post = req.body;
+  const user = req.body;
 
-  if (!post.text || !post.user_id) {
+  if (!user.text || !user.user_id) {
     res.status(400).json({
-      errorMessage: "Please provide text and user_id for the post."
+      errorMessage: "Please provide text and user_id for the user."
     });
   } else {
-    update(id, post)
+    update(id, user)
       .then(updated => {
         if (updated) {
           res.status(200).json({
-            message: "Post updates",
+            message: "user updates",
             updated
           });
         } else {
           res.status(404).json({
-            message: "The post with the specified ID does not exist"
+            message: "The user with the specified ID does not exist"
           });
         }
       })
       .catch(() => {
         res
           .status(500)
-          .json({ error: "The post information could not be modified." });
+          .json({ error: "The user information could not be modified." });
       });
   }
 });
@@ -143,9 +165,10 @@ function validateUserId(req, res, next) {
 
 function validateUser(req, res, next) {
   // do your magic!
-  const users = req.body;
+  const user = req.body;
 
-  Users.get(user)
+  user
+    .get(user)
     .then(user => {
       if (user) {
         req.user = user;
