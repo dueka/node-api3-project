@@ -50,10 +50,34 @@ router.get("/:id", (req, res) => {
 
 router.get("/:id/posts", (req, res) => {
   // do your magic!
+  getUserPosts(req.params.id)
+    .then(posts => {
+      res.status(200).json(posts);
+    })
+    .catch(error => {
+      console.log(error);
+      res.status(500).json({
+        message: "Error retrieiving the posts for the users"
+      });
+    });
 });
 
 router.delete("/:id", (req, res) => {
   // do your magic!
+  remove(req.params.id)
+    .then(count => {
+      if (count > 0) {
+        res.status(200).json({ message: "The user has been deleted" });
+      } else {
+        res.status(404).json({ messages: "The user cannot be found" });
+      }
+    })
+    .catch(error => {
+      console.log(error);
+      res.status(500).json({
+        message: "Error removing the hub"
+      });
+    });
 });
 
 router.put("/:id", (req, res) => {
